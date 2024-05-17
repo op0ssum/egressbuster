@@ -30,30 +30,31 @@ try:
     ipaddr = sys.argv[1]
     eth = sys.argv[2]
     srcipaddr = sys.argv[3]
+    portrange = sys.argv[4]
 
 # if we didnt put anything in args
 except IndexError:
     print("""
 Egress Buster v0.4 - Find open ports inside a network
 
-This will route all ports to a local port and listen on every port. This
-means you can listen on all ports and try all ports as a way to egress bust.
+This will route ports you specify to a local port and listen on every port. This
+means you can listen on all ports specified and try them as a way to egress bust.
 
 Quick Egress Buster Listener written by: Dave Kennedy (@HackingDave) at TrustedSec
 
-Arguments: local listening ip, eth interface for listener, source ip to listen to, optional flag for shell
+Arguments: local listening ip, eth interface for listener, source ip to listen to, ports to listen on, optional flag for shell
 
-Usage: $ python egress_listener.py <your_local_ip_addr> <eth_interface_for_listener> <source_ip_addr> <optional_do_you_want_a_shell>
+Usage: $ python egress_listener.py <your_local_ip_addr> <eth_interface_for_listener> <source_ip_addr> <port range> <optional_do_you_want_a_shell>
 
 Set src_ip_to_listen_for to 0.0.0.0/0 to listen to connections from any IP, otherwise set a specific IP/CIDR and only connections from that source will be redirected to the listener.
 
-Example: $ python egress_listener.py 192.168.13.10 eth0 117.123.98.4 shell
+Example: $ python egress_listener.py 192.168.13.10 eth0 117.123.98.4 1:65535 shell
         """)
     sys.exit()
 
 # assign shell
 try:
-    shell = sys.argv[4]
+    shell = sys.argv[5]
 except:
     pass
 
@@ -109,14 +110,14 @@ if __name__ == "__main__":
         # Insert an iptables rule into the first line of the nat table's 
         # PREROUTING chain, to ensure existing PREROUTING rules don't 
         # cause unexpected behavior.
-        print("[*] Inserting iptables rule to redirect connections from %s to **all TCP ports** to Egress Buster port %s/tcp" % (listening, port))
+        print("[*] Inserting iptables rule to redirect connections from %s to %s to Egress Buster port %s/tcp" % (listening, portrange, port))
         ret = subprocess.Popen(
-            "iptables -t nat -I PREROUTING -s %s -i %s -p tcp  --dport 1:65535 -j DNAT --to-destination %s:%s" % (srcipaddr, eth, ipaddr, port),
+            "iptables -t nat -I PREROUTING -s %s -i %s -p tcp  --dport %s -j DNAT --to-destination %s:%s" % (srcipaddr, eth, portrange, ipaddr, port),
             shell=True
         ).wait()
         if ret != 0:
             raise Exception('failed to set iptables rule (code %d), aborting' % ret)
-        print("[*] Listening on all TCP ports now... Press control-c when finished.")
+        print("[*] Listening on TCP ports %s now... Press control-c when finished." % portrange)
 
         while running:
             time.sleep(1)
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     finally:
         print("\n[*] Exiting and removing iptables redirect rule.")
         subprocess.Popen(
-            "iptables -t nat -D PREROUTING -s %s -i %s -p tcp  --dport 1:65535 -j DNAT --to-destination %s:%s" % (srcipaddr, eth, ipaddr, port),
+            "iptables -t nat -D PREROUTING -s %s -i %s -p tcp  --dport %s -j DNAT --to-destination %s:%s" % (srcipaddr, eth, portrange, ipaddr, port),
             shell=True
         ).wait()
     print("[*] Done")
