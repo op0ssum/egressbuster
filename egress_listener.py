@@ -94,6 +94,26 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer): pa
 
 if __name__ == "__main__":
 
+    if len(sys.argv) < 5:
+        print("""
+Egress Buster v0.4 - Find open ports inside a network
+
+This will route ports you specify to a local port and listen on every port. This
+means you can listen on all ports specified and try them as a way to egress bust.
+
+Quick Egress Buster Listener written by: Dave Kennedy (@HackingDave) at TrustedSec
+
+Arguments: local listening ip, eth interface for listener, source ip to listen to, ports to listen on, optional flag for shell
+
+Usage: $ python egress_listener.py <your_local_ip_addr> <eth_interface_for_listener> <source_ip_addr> <port range> <optional_do_you_want_a_shell>
+
+Set src_ip_to_listen_for to 0.0.0.0/0 to listen to connections from any IP, otherwise set a specific IP/CIDR and only connections from that source will be redirected to the listener.
+
+Example: $ python egress_listener.py 192.168.13.10 eth0 117.123.98.4 1:65535 shell
+        """)
+    else:
+        sys.exit()
+
     try:
         # threaded server to handle multiple TCP connections
         socketserver = ThreadedTCPServer(('', 0), ThreadedTCPRequestHandler)
